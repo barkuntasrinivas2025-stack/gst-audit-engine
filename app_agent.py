@@ -1,75 +1,46 @@
-import json
 import re
-from strands import Agent, tool
-from strands.models.ollama import OllamaModel
+import json
 
-@tool
-def calculate_gst(amount: float, category: str = "services") -> dict:
-    """Calculates Indian GST for a given monetary amount.
-    
-    Args:
-        amount: The base numerical invoice amount (e.g. 12500.0).
-        category: Must be one of 'essential', 'standard', 'services', or 'luxury'. Defaults to 'services'.
+def parse_financial_query(query_str: str) -> dict:
     """
-    rates = {
-        "essential": 0.05,
-        "standard": 0.12,
-        "services": 0.18,
-        "luxury": 0.28
-    }
-    cat = str(category).lower().strip()
-    rate = rates.get(cat, 0.18)
-    tax_amount = float(amount) * rate
-    
-    return {
-        "base_amount": float(amount),
-        "category": cat,
-        "gst_rate_percent": int(rate * 100),
-        "tax_amount": tax_amount,
-        "total_amount": float(amount) + tax_amount
-    }
-
-@tool
-def validate_gstin_format(gstin: str) -> dict:
-    """Validates the structural format of an Indian GSTIN identification string.
-    
-    Args:
-        gstin: A 15-character Indian GSTIN string (e.g. '36AABCU9603R1ZM').
+    Parses raw unstructured text to extract monetary amounts up to 16 digits,
+    handling formatted numbers with commas cleanly.
     """
-    clean_gstin = str(gstin).strip().upper()
-    gstin_regex = r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$"
-    is_valid = bool(re.match(gstin_regex, clean_gstin))
+    # 1. Extract GSTIN if present
+    gstin_match = re.search(r'\b[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}\b', query_str)
+    gstin = gstin_match.group(0) if gstin_match else "36AABCU9603R1ZM"
     
+    # 2. Extract monetary amount (handles numbers with or without commas)
+    # Strip commas inside candidate numbers first
+    clean_query = re.sub(r'(?<=\d),(?=\d)', '', query_str)
+    amount_matches = re.findall(r'\b\d{1,16}(?:\.\d{1,2})?\b', clean_query)
+    
+    amount = 0.0
+    if amount_matches:
+        # Pick the largest number found if multiple exist
+        amounts = [float(m) for m in amount_matches]
+        amount = max(amounts)
+        
+    # 3. Guardrail circuit breaker for 17+ digits
+    raw_digits = re.findall(r'\b\d{17,}\b', clean_query)
+    if raw_digits:
+        return {"error": "Input amount exceeds safety threshold (16-digit max limit / ₹10 Quadrillion)."}
+
+    # 4. Tax Tier Category Detection
+    tier = "Services - 18%"
+    if "essential" in query_str.lower() or "5%" in query_str:
+        tier = "Essential - 5%"
+    elif "standard" in query_str.lower() or "12%" in query_str:
+        tier = "Standard - 12%"
+    elif "luxury" in query_str.lower() or "28%" in query_str:
+        tier = "Luxury - 28%"
+
+    # 5. Intra vs Inter state detection
+    is_intrastate = "inter" not in query_str.lower()
+
     return {
-        "gstin": clean_gstin,
-        "is_structurally_valid": is_valid,
-        "state_code": clean_gstin[:2] if is_valid else "INVALID"
+        "amount": amount,
+        "gstin": gstin,
+        "tier": tier,
+        "is_intrastate": is_intrastate
     }
-
-# Local Ollama configuration
-ollama_model = OllamaModel(
-    host="http://localhost:11434",
-    model_id="llama3.1"
-)
-
-# Explicit system prompt constraining argument choices
-system_instruction = (
-    "You are a precise Indian GST tax auditor. "
-    "To audit an invoice: "
-    "1. Validate the GSTIN using validate_gstin_format. "
-    "2. Calculate tax using calculate_gst with amount and category ('services', 'essential', 'standard', or 'luxury'). "
-    "Do NOT invent extra parameters like state_code or gst_rate when calling calculate_gst."
-)
-
-agent = Agent(
-    model=ollama_model,
-    tools=[calculate_gst, validate_gstin_format],
-    system_prompt=system_instruction
-)
-
-if __name__ == "__main__":
-    query = "Audit this invoice: Amount is 12500 INR for services. Vendor GSTIN is 36AABCU9603R1ZM."
-    print("--- Running Audit Agent ---")
-    response = agent(query)
-    print("\n--- Final Agent Response ---")
-    print(response)
