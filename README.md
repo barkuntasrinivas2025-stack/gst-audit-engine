@@ -1,6 +1,6 @@
 # 🧾 AI-Driven Financial & GST Audit Engine
 
-An automated, compliance-focused tax evaluation engine powered by the **Strands SDK**, **Ollama**, and **Llama 3.1**. Built for the **AWS First Commit Hackathon**, this application performs deterministic Indian Goods and Services Tax (GST) calculations, statutory tax splitting (CGST, SGST, IGST), and GSTIN format verification while preventing computational hallucinations across multi-billion monetary inputs.
+An automated, compliance-focused tax evaluation engine powered by **AWS Bedrock**, **Strands SDK**, **Ollama**, and **Llama 3.1**. Built for the **AWS First Commit Hackathon**, this application performs deterministic Indian Goods and Services Tax (GST) calculations, statutory tax splitting (CGST, SGST, IGST), and GSTIN format verification while preventing computational hallucinations across multi-billion monetary inputs.
 
 ---
 
@@ -9,6 +9,9 @@ An automated, compliance-focused tax evaluation engine powered by the **Strands 
 - **Dual Interaction Modes:**
   - **Direct Field Entry Dashboard:** A high-throughput, structured control layout for precise audit evaluation with zero LLM execution overhead.
   - **Single Input Query Mode:** A conversational agent interface that parses raw unstructured financial queries and presents visual metric reports.
+- **AWS Cloud Native & Hybrid Fallback:**
+  - **Primary Inference:** Direct API integration with **Amazon Bedrock** (`meta.llama3-1-8b-instruct`).
+  - **Local Resilience:** Graceful fallback to local **Ollama** runtime if offline or unauthenticated.
 - **High-Precision Financial Guardrails:**
   - Supports large-scale corporate invoice amounts up to **16 digits** (₹9,999,999,999,999,999.00 / ₹10 Quadrillion ceiling).
   - Built-in circuit breaker rejecting oversized numerical inputs (17+ digits).
@@ -24,10 +27,11 @@ An automated, compliance-focused tax evaluation engine powered by the **Strands 
 
 ## 🏗️ Architecture & Technology Stack
 
+- **Cloud AI Engine:** [Amazon Bedrock](https://aws.amazon.com/bedrock/) (Llama 3.1 8B Instruct / Claude 3.5 Sonnet)
 - **Agent Framework:** [Strands SDK](https://github.com/strands-ai/strands)
-- **Local LLM Infrastructure:** [Ollama](https://ollama.com/) running `llama3.1`
+- **Fallback Local LLM:** [Ollama](https://ollama.com/) running `llama3.1`
 - **UI Framework:** [Streamlit](https://streamlit.io/)
-- **Core Runtime:** Python 3.10+
+- **Core Runtime:** Python 3.10+ & AWS SDK (`boto3`)
 
 ---
 
@@ -36,7 +40,8 @@ An automated, compliance-focused tax evaluation engine powered by the **Strands 
 ### Prerequisites
 
 1. **Python 3.10+** installed on your system.
-2. **Ollama** installed and running locally with `llama3.1`:
+2. (Optional) **AWS Credentials** configured in `~/.aws/credentials` or environment variables for Bedrock execution.
+3. (Optional) **Ollama** running locally as a offline fallback:
    ```bash
    ollama pull llama3.1
 1. Installation & Setup
