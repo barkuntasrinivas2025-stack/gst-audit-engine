@@ -27,7 +27,7 @@ An automated, compliance-focused tax evaluation engine powered by **AWS Bedrock*
 
 ## 🏗️ Architecture & Technology Stack
 
-- **Cloud AI Engine:** [Amazon Bedrock](https://aws.amazon.com/bedrock/) (Llama 3.1 8B Instruct / Claude 3.5 Sonnet)
+- **Cloud AI Engine:** [Amazon Bedrock](https://aws.amazon.com/bedrock/) (Llama 3.1 8B Instruct)
 - **Agent Framework:** [Strands SDK](https://github.com/strands-ai/strands)
 - **Fallback Local LLM:** [Ollama](https://ollama.com/) running `llama3.1`
 - **UI Framework:** [Streamlit](https://streamlit.io/)
@@ -40,8 +40,8 @@ An automated, compliance-focused tax evaluation engine powered by **AWS Bedrock*
 ### Prerequisites
 
 1. **Python 3.10+** installed on your system.
-2. (Optional) **AWS Credentials** configured in `~/.aws/credentials` or environment variables for Bedrock execution.
-3. (Optional) **Ollama** running locally as a offline fallback:
+2. *(Optional)* **AWS Credentials** configured for Amazon Bedrock execution.
+3. *(Optional)* **Ollama** running locally as an offline fallback:
    ```bash
    ollama pull llama3.1
 1. Installation & Setup
